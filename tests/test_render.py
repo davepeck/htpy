@@ -60,8 +60,8 @@ def test_encode(case: RenderableTestCase) -> None:
 
 
 @pytest.mark.parametrize("case", cases)
-def test_stream_chunks(case: RenderableTestCase) -> None:
-    result = list(case.renderable.stream_chunks())
+def test_iter_chunks(case: RenderableTestCase) -> None:
+    result = list(case.renderable.iter_chunks())
 
     # Ensure we get str back, not markup.
     assert type(result[0]) is str

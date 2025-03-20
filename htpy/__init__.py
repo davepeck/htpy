@@ -131,15 +131,15 @@ class ContextProvider(t.Generic[T]):
     node: Node
 
     def __iter__(self) -> Iterator[str]:
-        return _stream_chunks(self, {})
+        return _iter_chunks(self, {})
 
     def __str__(self) -> _Markup:
         return _as_markup(self)
 
     __html__ = __str__
 
-    def stream_chunks(self) -> Iterator[str]:
-        return _stream_chunks(self, {})
+    def iter_chunks(self) -> Iterator[str]:
+        return _iter_chunks(self, {})
 
     def encode(self, encoding: str = "utf-8", errors: str = "strict") -> bytes:
         return str(self).encode(encoding, errors)
@@ -156,8 +156,8 @@ class ContextConsumer(t.Generic[T]):
 
     __html__ = __str__
 
-    def stream_chunks(self) -> Iterator[str]:
-        return _stream_chunks(self, {})
+    def iter_chunks(self) -> Iterator[str]:
+        return _iter_chunks(self, {})
 
     def encode(self, encoding: str = "utf-8", errors: str = "strict") -> bytes:
         return str(self).encode(encoding, errors)
@@ -187,10 +187,10 @@ class Context(t.Generic[T]):
 
 
 def iter_node(x: Node) -> Iterator[str]:
-    return fragment[x].stream_chunks()
+    return fragment[x].iter_chunks()
 
 
-def _stream_chunks(x: Node, context_dict: dict[Context[t.Any], t.Any]) -> Iterator[str]:
+def _iter_chunks(x: Node, context_dict: dict[Context[t.Any], t.Any]) -> Iterator[str]:
     while not isinstance(x, BaseElement) and callable(x):
         x = x()
 
@@ -206,7 +206,7 @@ def _stream_chunks(x: Node, context_dict: dict[Context[t.Any], t.Any]) -> Iterat
     if isinstance(x, BaseElement):
         yield from x._iter_context(context_dict)  # pyright: ignore [reportPrivateUsage]
     elif isinstance(x, ContextProvider):
-        yield from _stream_chunks(x.node, {**context_dict, x.context: x.value})  # pyright: ignore [reportUnknownMemberType]
+        yield from _iter_chunks(x.node, {**context_dict, x.context: x.value})  # pyright: ignore [reportUnknownMemberType]
     elif isinstance(x, ContextConsumer):
         context_value = context_dict.get(x.context, x.context.default)  # pyright: ignore
 
@@ -215,16 +215,16 @@ def _stream_chunks(x: Node, context_dict: dict[Context[t.Any], t.Any]) -> Iterat
                 f'Context value for "{x.context.name}" does not exist, '  # pyright: ignore
                 f"requested by {x.debug_name}()."
             )
-        yield from _stream_chunks(x.func(context_value), context_dict)  # pyright: ignore
+        yield from _iter_chunks(x.func(context_value), context_dict)  # pyright: ignore
     elif isinstance(x, Fragment):
-        yield from _stream_chunks(x._node, context_dict)  # pyright: ignore
+        yield from _iter_chunks(x._node, context_dict)  # pyright: ignore
     elif isinstance(x, str | _HasHtml):
         yield str(_escape(x))
     elif isinstance(x, int):
         yield str(x)
     elif isinstance(x, Iterable) and not isinstance(x, _KnownInvalidChildren):  # pyright: ignore [reportUnnecessaryIsInstance]
         for child in x:
-            yield from _stream_chunks(child, context_dict)
+            yield from _iter_chunks(child, context_dict)
     else:
         raise TypeError(f"{x!r} is not a valid child element")
 
@@ -301,12 +301,12 @@ class BaseElement:
     def __iter__(self) -> Iterator[str]:
         return self._iter_context({})
 
-    def stream_chunks(self) -> Iterator[str]:
+    def iter_chunks(self) -> Iterator[str]:
         return self._iter_context({})
 
     def _iter_context(self, ctx: dict[Context[t.Any], t.Any]) -> Iterator[str]:
         yield f"<{self._name}{self._attrs}>"
-        yield from _stream_chunks(self._children, ctx)
+        yield from _iter_chunks(self._children, ctx)
         yield f"</{self._name}>"
 
     def encode(self, encoding: str = "utf-8", errors: str = "strict") -> bytes:
@@ -378,15 +378,15 @@ class Fragment:
         self._node: Node = None
 
     def __iter__(self) -> Iterator[str]:
-        return _stream_chunks(self, {})
+        return _iter_chunks(self, {})
 
     def __str__(self) -> _Markup:
         return _as_markup(self)
 
     __html__ = __str__
 
-    def stream_chunks(self) -> Iterator[str]:
-        return _stream_chunks(self, {})
+    def iter_chunks(self) -> Iterator[str]:
+        return _iter_chunks(self, {})
 
     def encode(self, encoding: str = "utf-8", errors: str = "strict") -> bytes:
         return str(self).encode(encoding, errors)
@@ -403,7 +403,7 @@ fragment = _FragmentGetter()
 
 
 def _as_markup(renderable: Renderable) -> _Markup:
-    return _Markup("".join(renderable.stream_chunks()))
+    return _Markup("".join(renderable.iter_chunks()))
 
 
 def render_node(node: Node) -> _Markup:
@@ -580,7 +580,7 @@ _KnownValidChildren: UnionType = (
 class Renderable(t.Protocol):
     def __str__(self) -> _Markup: ...
     def __html__(self) -> _Markup: ...
-    def stream_chunks(self) -> Iterator[str]: ...
+    def iter_chunks(self) -> Iterator[str]: ...
 
     # Allow starlette Response.render to directly render this element without
     # explicitly casting to str:
