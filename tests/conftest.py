@@ -59,7 +59,7 @@ def render(render_result: RenderResult) -> Generator[RenderFixture, None, None]:
             raise AssertionError("render() must only be called once per test")
 
         called = True
-        for chunk in renderable.stream_chunks():
+        for chunk in renderable.iter_chunks():
             render_result.append(chunk)
 
         return render_result
