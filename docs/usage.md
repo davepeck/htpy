@@ -112,16 +112,16 @@ Hello <i>world!</i>
 
 The `Renderable` protocol provides a consistent API to render an `htpy` object as HTML or to iterate over it. `Element`, `Fragment`, `ContextProvider`, and `ContextConsumer` are all `Renderable`.
 
-The `__str__()` (and `__html__()`) methods are used to render the object as HTML. The `iter_chunks()` method is used to iterate over the chunks of the object.
+The `__str__()` (and `__html__()`) methods render the object as HTML. The `iter_chunks()` method iterates over the chunks of the object.
 
-Typically when writing rendering code, your template functions will want to return the `Renderable` type:
+Typically, rendering code will want to return the `Renderable` type:
 
 ```pycon
->>> from htpy import div, h1, Renderable
->>> def my_template(name: str) -> Renderable:
-...     return div[h1["Hello", " ", name]]
->>> print(my_template("World!"))
-<div><h1>Hello World!</h1></div>
+>>> from htpy import h1, Renderable
+>>> def my_template() -> Renderable:
+...     return h1["Hello!"]
+>>> print(my_template())
+<h1>Hello!</h1>
 
 ```
 
